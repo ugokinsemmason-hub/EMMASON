@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETS – UGOKINS EMMASON | Business Suite</title>
+
+<!-- PWA Support -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a3a6b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ETS Invoice">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- External CSS (instead of inline styles) -->
+<link rel="stylesheet" href="assets/css/style.css">
+
+<!-- JS Libraries — local copies (works offline) -->
+<script src="assets/libs/jspdf.umd.min.js"></script>
+<script src="assets/libs/jspdf.plugin.autotable.min.js"></script>
+<script src="assets/libs/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo-ph" id="topbarLogoWrap">⚙️</div>
+    <div>
+      <h1 id="topbarName">ETS – UGOKINS EMMASON</h1>
+      <p>Professional Business Suite — Invoice, Receipt & Inventory</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    📞 +243 990 389 493 / +243 994 999 666<br>
+    ✉️ ugokinginv@yahoo.com &nbsp;|&nbsp; 📍 No.105, Av. Isoki, Q/Ngwaka, C/Kinshasa
+    <br>
+    <button id="installBtn" onclick="installApp()">📲 Install App</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('invoice')">📄 Invoice Builder</div>
+  <div class="tab" onclick="switchTab('receipt')">🧾 Cash Receipt</div>
+  <div class="tab" onclick="switchTab('inv-records')">📁 Invoice Records</div>
+  <div class="tab" onclick="switchTab('rcpt-records')">💰 Payment Records</div>
+  <div class="tab" onclick="switchTab('stock')">📦 Stock Management</div>
+</div>
+
+<!-- ══ TAB 1 — INVOICE BUILDER ══ -->
+<div class="tab-content active" id="tab-invoice">
+<div class="container">
+  <div class="banner">
+    <div><div class="lbl">Proforma Invoice No.</div><div class="val" id="invNoDisplay">—</div></div>
+    <div style="text-align:right;"><div class="lbl">Date Issued</div><div class="val" id="invDateDisplay">—</div></div>
+  </div>
+  <div class="card">
+    <h2>Our Company Details</h2>
+    <div class="grid2">
+      <div style="display:flex;flex-direction:column;gap:13px;">
+        <div><label>Company Name 🔒</label><div class="locked-field">🔒 <span id="lockedNameDisplay">ETS – UGOKINS EMMASON</span></div></div>
+        <div class="grid2">
+          <div><label>Phone</label><input type="text" id="companyPhone" value="+243 990 389 493 / +243 994 999 666"></div>
+          <div><label>Email</label><input type="email" id="companyEmail" value="ugokinginv@yahoo.com"></div>
+        </div>
+        <div class="grid2">
+          <div><label>Address</label><input type="text" id="companyAddress" value="No.105, Av. Isoki, Q/Ngwaka, C/Kinshasa, P/Kinshasa"></div>
+          <div><label>Quote Valid Until</label><input type="date" id="quoteValid"></div>
+        </div>
+      </div>
+      <div>
+        <label>Company Logo 🔒</label>
+        <div class="logo-section">
+          <div id="logoDisplayWrap"><div class="logo-ph" id="logoPlaceholder">⚙️</div><img id="logoImg" class="logo-img" src="" alt="" style="display:none;"></div>
+          <div><div style="font-weight:700;color:#1a3a6b;" id="logoNameLabel">ETS – UGOKINS EMMASON</div><p style="font-size:.74rem;color:#64748b;margin-top:4px;">Locked — edit from VS Code only.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Client / Recipient Details (TO)</h2>
+    <div class="grid3">
+      <div><label>Client / Company Name</label><input type="text" id="clientName" placeholder="e.g. M.Mak Door Laboratory"></div>
+      <div><label>Phone Number</label><input type="text" id="clientPhone" placeholder="+243 848 424 943"></div>
+      <div><label>Email Address</label><input type="email" id="clientEmail" placeholder="client@email.com"></div>
+    </div>
+    <div style="margin-top:12px;"><label>Client Address</label><input type="text" id="clientAddress" placeholder="Full address of recipient"></div>
+  </div>
+  <div class="card">
+    <h2>Products / Items</h2>
+    <div class="table-wrap">
+      <table class="pt">
+        <thead><tr>
+          <th style="width:32px;">#</th>
+          <th style="width:122px;">Images</th>
+          <th>Product (select from stock or type)</th>
+          <th style="width:98px;">Size/Code</th>
+          <th style="width:62px;">Unit</th>
+          <th style="width:55px;">Qty</th>
+          <th style="width:90px;">Unit Price ($)</th>
+          <th style="width:90px;">Total ($)</th>
+          <th style="width:36px;"></th>
+        </tr></thead>
+        <tbody id="productBody"></tbody>
+        <tfoot><tr class="total-row">
+          <td colspan="7" style="text-align:right;padding:11px 9px;letter-spacing:.5px;">GRAND TOTAL</td>
+          <td id="grandTotal" style="padding:11px 9px;font-size:1rem;">$0.00</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+    </div>
+    <div class="actions" style="margin-top:12px;">
+      <button class="btn btn-outline" onclick="addRow()">➕ Add Product Row</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Additional Notes (Optional)</h2>
+    <textarea id="invoiceNotes" placeholder="Payment terms, delivery timeline, warranty..."></textarea>
+  </div>
+  <div class="card">
+    <h2>Product Sample Images — Footer 🔒</h2>
+    <p style="font-size:.79rem;color:#64748b;margin-bottom:4px;">8 locked footer images shown on every invoice. Edit from VS Code only.</p>
+    <div class="footer-imgs-row" id="footerImgsPreview"></div>
+    <div class="footer-locked-note">⚠️ Edit the <strong>FOOTER_IMAGES</strong> array in <code>assets/js/app.js</code> to update these images.</div>
+  </div>
+  <div class="card green">
+    <h2>Preview & Export Invoice</h2>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="showInvPreview()">👁️ Preview Invoice</button>
+      <button class="btn btn-success" onclick="exportInvPDF('plain')">📄 Export PDF</button>
+      <button class="btn btn-sig" onclick="exportInvPDF('sig')">✍️ With Signature</button>
+      <button class="btn btn-seal" onclick="exportInvPDF('seal')">🔏 With Seal</button>
+      <button class="btn btn-both" onclick="exportInvPDF('both')">📄✍️ Sig + Seal</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ TAB 2 — CASH RECEIPT ══ -->
+<div class="tab-content" id="tab-receipt">
+<div class="container">
+  <div class="banner">
+    <div><div class="lbl">Cash Receipt No.</div><div class="val" id="rcptNoDisplay">—</div></div>
+    <div style="text-align:right;"><div class="lbl">Date</div><div class="val" id="rcptDateDisplay">—</div></div>
+  </div>
+  <div class="card">
+    <h2>Company Details</h2>
+    <div class="grid2">
+      <div style="display:flex;flex-direction:column;gap:13px;">
+        <div><label>Company Name 🔒</label><div class="locked-field">🔒 ETS – UGOKINS EMMASON</div></div>
+        <div class="grid2">
+          <div><label>Phone</label><input type="text" id="rcptCoPhone" value="+243 990 389 493 / +243 994 999 666"></div>
+          <div><label>Email</label><input type="email" id="rcptCoEmail" value="ugokinginv@yahoo.com"></div>
+        </div>
+        <div><label>Address</label><input type="text" id="rcptCoAddress" value="No.105, Av. Isoki, Q/Ngwaka, C/Kinshasa, P/Kinshasa"></div>
+      </div>
+      <div>
+        <label>Company Logo 🔒</label>
+        <div class="logo-section">
+          <div id="rcptLogoWrap"><div class="logo-ph">⚙️</div></div>
+          <div><div style="font-weight:700;color:#1a3a6b;">ETS – UGOKINS EMMASON</div><p style="font-size:.74rem;color:#64748b;margin-top:4px;">Locked — same as invoice.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Cash Receipt Details</h2>
+    <div class="grid2" style="margin-bottom:13px;">
+      <div><label>Cash Received From (Client Name)</label><input type="text" id="rcptClientName" placeholder="Full name or company name"></div>
+      <div><label>Receipt Date</label><input type="date" id="rcptDate"></div>
+    </div>
+    <div style="margin-bottom:13px;">
+      <label>For (Description)</label>
+      <textarea id="rcptDesc" placeholder="e.g. Supply of hermetic doors and windows as per Invoice INV-260308-452"></textarea>
+    </div>
+    <div class="grid3" style="margin-bottom:13px;">
+      <div><label>Total Amount Due ($)</label><input type="number" id="rcptTotalDue" placeholder="0.00" min="0" step="0.01" oninput="calcRcpt()"></div>
+      <div><label>Amount Received This Payment ($)</label><input type="number" id="rcptAmtReceived" placeholder="0.00" min="0" step="0.01" oninput="calcRcpt()"></div>
+      <div><label>Balance Due ($)</label><input type="number" id="rcptBalDue" placeholder="0.00" readonly></div>
+    </div>
+    <div>
+      <label>Payment Method</label>
+      <div class="pm-group">
+        <label><input type="checkbox" id="pmCash"> Cash</label>
+        <label><input type="checkbox" id="pmCheque"> Cheque</label>
+        <label><input type="checkbox" id="pmOther"> Other</label>
+        <input type="text" id="pmOtherTxt" placeholder="Specify..." style="width:180px;">
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Additional Notes (Optional)</h2>
+    <textarea id="rcptNotes" placeholder="Any additional notes about this payment..."></textarea>
+  </div>
+  <div class="card green">
+    <h2>Preview & Export Cash Receipt</h2>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="showRcptPreview()">👁️ Preview Receipt</button>
+      <button class="btn btn-success" onclick="exportRcptPDF('plain')">📄 Export PDF</button>
+      <button class="btn btn-sig" onclick="exportRcptPDF('sig')">✍️ With Signature</button>
+      <button class="btn btn-seal" onclick="exportRcptPDF('seal')">🔏 With Seal</button>
+      <button class="btn btn-both" onclick="exportRcptPDF('both')">📄✍️ Sig + Seal</button>
+      <button class="btn btn-amber" onclick="saveRcptRecord()">💾 Save to Payment Records</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ TAB 3 — INVOICE RECORDS ══ -->
+<div class="tab-content" id="tab-inv-records">
+<div class="container">
+  <div class="card">
+    <h2>Invoice Records</h2>
+    <div class="search-bar">
+      <input type="text" id="invSearch" placeholder="🔍 Search by client name..." oninput="renderInvRecords()">
+      <button class="btn btn-danger btn-sm" onclick="if(confirm('Clear ALL invoice records?')){dbSave('inv_records',[]);renderInvRecords();}">🗑 Clear All</button>
+    </div>
+    <div id="invRecordsList"><div class="empty-state"><div>📄</div><p>No invoices saved yet.</p></div></div>
+  </div>
+</div>
+</div>
+
+<!-- ══ TAB 4 — PAYMENT RECORDS ══ -->
+<div class="tab-content" id="tab-rcpt-records">
+<div class="container">
+  <div class="card">
+    <h2>Payment Records</h2>
+    <div class="search-bar">
+      <input type="text" id="rcptSearch" placeholder="🔍 Search by client name..." oninput="renderRcptRecords()">
+      <button class="btn btn-danger btn-sm" onclick="if(confirm('Clear ALL payment records?')){dbSave('rcpt_records',[]);renderRcptRecords();}">🗑 Clear All</button>
+    </div>
+    <div id="rcptRecordsList"><div class="empty-state"><div>💰</div><p>No payment records yet.</p></div></div>
+  </div>
+</div>
+</div>
+
+<!-- ══ TAB 5 — STOCK MANAGEMENT ══ -->
+<div class="tab-content" id="tab-stock">
+<div class="container">
+  <div class="grid4" style="margin-bottom:18px;">
+    <div class="stock-stat"><div class="s-val" id="statTotal">0</div><div class="s-lbl">Total Products</div></div>
+    <div class="stock-stat"><div class="s-val" id="statOk" style="color:#16a34a;">0</div><div class="s-lbl">🟢 In Stock</div></div>
+    <div class="stock-stat"><div class="s-val" id="statLow" style="color:#d97706;">0</div><div class="s-lbl">🟡 Low Stock</div></div>
+    <div class="stock-stat"><div class="s-val" id="statOut" style="color:#dc2626;">0</div><div class="s-lbl">🔴 Out of Stock</div></div>
+  </div>
+  <div class="card amber" id="stockFormCard">
+    <h2 id="stockFormTitle">Add New Product to Stock</h2>
+    <input type="hidden" id="editingStockId">
+    <div class="grid3" style="margin-bottom:13px;">
+      <div><label>Product Name</label><input type="text" id="stkName" placeholder="e.g. Single Leaf Hermetic Door"></div>
+      <div><label>Product Code / Size</label><input type="text" id="stkCode" placeholder="e.g. Pe01 / 1000×2100"></div>
+      <div><label>Unit</label><select id="stkUnit"><option>SET</option><option>PCS</option><option>M²</option><option>M</option><option>LOT</option><option>KG</option></select></div>
+    </div>
+    <div class="grid3" style="margin-bottom:13px;">
+      <div><label>Quantity in Stock</label><input type="number" id="stkQty" placeholder="0" min="0"></div>
+      <div><label>Unit Price ($)</label><input type="number" id="stkPrice" placeholder="0.00" min="0" step="0.01"></div>
+      <div><label>Low Stock Alert Threshold</label><input type="number" id="stkThreshold" placeholder="e.g. 5" min="0"></div>
+    </div>
+    <div style="margin-bottom:13px;"><label>Description (optional)</label><textarea id="stkDesc" placeholder="Additional product description..."></textarea></div>
+    <div class="actions">
+      <button class="btn btn-amber" onclick="saveStockProduct()">💾 Save Product</button>
+      <button class="btn btn-outline" onclick="clearStockForm()">✕ Clear Form</button>
+    </div>
+  </div>
+  <div class="card purple" id="restockCard" style="display:none;">
+    <h2>Restock Product</h2>
+    <div style="margin-bottom:10px;font-weight:700;color:#7c3aed;" id="restockProductName"></div>
+    <div class="grid3">
+      <div><label>Quantity to Add</label><input type="number" id="restockQty" placeholder="0" min="1"></div>
+      <div><label>Restock Date</label><input type="date" id="restockDate"></div>
+      <div><label>Supplier / Note (optional)</label><input type="text" id="restockNote" placeholder="Supplier name or note"></div>
+    </div>
+    <div class="actions" style="margin-top:12px;">
+      <button class="btn btn-purple" onclick="confirmRestock()">✅ Confirm Restock</button>
+      <button class="btn btn-outline" onclick="document.getElementById('restockCard').style.display='none';">✕ Cancel</button>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+      <h2 style="margin-bottom:0;">Current Stock List</h2>
+      <div class="actions" style="margin-top:0;">
+        <button class="btn btn-success btn-sm" onclick="exportStockPDF()">📄 Export PDF</button>
+        <button class="btn btn-amber btn-sm" onclick="exportStockExcel()">📊 Export Excel</button>
+        <input type="text" id="stockSearch" placeholder="🔍 Search stock..." oninput="renderStock()" style="width:180px;">
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="pt" id="stockTable">
+        <thead><tr>
+          <th style="width:32px;">#</th>
+          <th>Product Name</th>
+          <th style="width:110px;">Code/Size</th>
+          <th style="width:55px;">Unit</th>
+          <th style="width:70px;">In Stock</th>
+          <th style="width:90px;">Unit Price</th>
+          <th style="width:90px;">Total Value</th>
+          <th style="width:65px;">Threshold</th>
+          <th style="width:70px;">Status</th>
+          <th style="width:130px;">Actions</th>
+        </tr></thead>
+        <tbody id="stockBody"></tbody>
+        <tfoot><tr class="total-row">
+          <td colspan="6" style="text-align:right;padding:10px 9px;">TOTAL INVENTORY VALUE</td>
+          <td id="stockTotalValue" style="padding:10px 9px;font-size:.95rem;">$0.00</td>
+          <td colspan="3"></td>
+        </tr></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ OVERLAYS ══ -->
+<div class="overlay" id="invPreviewOverlay">
+  <div class="preview-box">
+    <div class="preview-hdr"><div><div style="font-size:.98rem;font-weight:800;">📋 Invoice Preview</div></div><button class="btn" style="background:rgba(255,255,255,.18);color:#fff;" onclick="closeOv('invPreviewOverlay')">✕ Close</button></div>
+    <div class="preview-body"><div class="wm" id="invWM"></div><div class="prev-inner" id="invPrevInner"></div></div>
+    <div class="overlay-footer">
+      <button class="btn btn-success" onclick="exportInvPDF('plain')">📄 PDF</button>
+      <button class="btn btn-sig" onclick="exportInvPDF('sig')">✍️ Sig</button>
+      <button class="btn btn-seal" onclick="exportInvPDF('seal')">🔏 Seal</button>
+      <button class="btn btn-both" onclick="exportInvPDF('both')">📄✍️ Both</button>
+      <button class="btn btn-amber" onclick="saveInvRecord()">💾 Save</button>
+      <button class="btn btn-outline" onclick="closeOv('invPreviewOverlay')">✏️ Edit</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="rcptPreviewOverlay">
+  <div class="preview-box">
+    <div class="preview-hdr"><div><div style="font-size:.98rem;font-weight:800;">🧾 Receipt Preview</div></div><button class="btn" style="background:rgba(255,255,255,.18);color:#fff;" onclick="closeOv('rcptPreviewOverlay')">✕ Close</button></div>
+    <div class="preview-body"><div class="wm" id="rcptWM"></div><div class="prev-inner" id="rcptPrevInner"></div></div>
+    <div class="overlay-footer">
+      <button class="btn btn-success" onclick="exportRcptPDF('plain')">📄 PDF</button>
+      <button class="btn btn-sig" onclick="exportRcptPDF('sig')">✍️ Sig</button>
+      <button class="btn btn-seal" onclick="exportRcptPDF('seal')">🔏 Seal</button>
+      <button class="btn btn-both" onclick="exportRcptPDF('both')">📄✍️ Both</button>
+      <button class="btn btn-amber" onclick="saveRcptRecord()">💾 Save</button>
+      <button class="btn btn-outline" onclick="closeOv('rcptPreviewOverlay')">✏️ Edit</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="histPreviewOverlay">
+  <div class="preview-box">
+    <div class="preview-hdr"><div><div style="font-size:.98rem;font-weight:800;">📜 Complete Payment History</div></div><button class="btn" style="background:rgba(255,255,255,.18);color:#fff;" onclick="closeOv('histPreviewOverlay')">✕ Close</button></div>
+    <div class="preview-body"><div class="wm" id="histWM"></div><div class="prev-inner" id="histPrevInner"></div></div>
+    <div class="overlay-footer" id="histOvFooter"></div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLB()">
+  <span class="lightbox-close">✕</span>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<!-- External JS (instead of inline scripts) -->
+<script src="assets/js/db.js"></script>
+<script>
+  // Wait for IndexedDB to be ready before app starts
+  DB_READY.then(() => {
+    const s = document.createElement('script');
+    s.src = 'assets/js/app.js';
+    document.body.appendChild(s);
+  });
+</script>
+
+</body>
+</html>
